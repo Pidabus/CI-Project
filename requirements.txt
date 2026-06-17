@@ -1,0 +1,6 @@
+pandas
+scikit-learn
+numpy
+scikit-fuzzy
+packaging
+networkx
