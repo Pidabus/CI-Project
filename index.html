@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GradeMinds — Student Risk Prediction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:   #0F1629;
+    --navy2:  #1A2540;
+    --blue:   #3B82F6;
+    --blue2:  #1D4ED8;
+    --amber:  #F59E0B;
+    --red:    #EF4444;
+    --green:  #22C55E;
+    --lime:   #84CC16;
+    --text:   #E8EDF5;
+    --text2:  #94A3B8;
+    --text3:  #64748B;
+    --border: rgba(255,255,255,0.08);
+    --card:   rgba(255,255,255,0.04);
+    --card2:  rgba(255,255,255,0.07);
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--navy);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── header ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 0.5px solid var(--border);
+    background: rgba(15,22,41,0.95);
+    position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(8px);
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--blue), var(--blue2));
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+  }
+  .logo-name { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600; }
+  .logo-sub  { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+
+  /* status pill */
+  .status-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: 100px;
+    font-size: 12px; font-weight: 500;
+    border: 0.5px solid var(--border);
+    background: var(--card);
+    transition: all 0.3s;
+  }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .status-pill.training .status-dot { background: var(--amber); animation: pulse 1.4s infinite; }
+  .status-pill.ready    .status-dot { background: var(--green); }
+  .status-pill.error    .status-dot { background: var(--red); }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+  /* ── main layout ── */
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+
+  /* ── pipeline banner ── */
+  .pipeline {
+    display: grid; grid-template-columns: 1fr 28px 1fr 28px 1fr;
+    gap: 0; align-items: center; margin-bottom: 28px;
+  }
+  .p-step {
+    background: var(--card); border: 0.5px solid var(--border);
+    border-radius: 12px; padding: 14px 18px;
+    transition: border-color 0.3s;
+  }
+  .p-step.active { border-color: rgba(59,130,246,0.5); background: rgba(59,130,246,0.08); }
+  .p-num  { font-size: 11px; color: var(--text3); margin-bottom: 3px; letter-spacing: 0.08em; }
+  .p-title { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 500; }
+  .p-desc  { font-size: 11px; color: var(--text2); margin-top: 3px; }
+  .p-arrow { text-align: center; color: var(--text3); font-size: 18px; }
+
+  /* ── body grid ── */
+  .body-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
+
+  /* ── card ── */
+  .card {
+    background: var(--card); border: 0.5px solid var(--border);
+    border-radius: 16px; padding: 20px 22px;
+  }
+  .card-title {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.1em;
+    color: var(--text3); text-transform: uppercase;
+    margin-bottom: 16px; padding-bottom: 12px;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  /* ── form ── */
+  .field { margin-bottom: 11px; }
+  .field label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 4px; }
+  .field select, .field input[type=number] {
+    width: 100%; background: rgba(255,255,255,0.05);
+    border: 0.5px solid var(--border); border-radius: 8px;
+    padding: 7px 10px; font-size: 13px; color: var(--text);
+    font-family: 'Inter', sans-serif;
+    transition: border-color 0.2s;
+  }
+  .field select:focus, .field input:focus {
+    outline: none; border-color: rgba(59,130,246,0.5);
+  }
+  .field select option { background: #1A2540; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .predict-btn {
+    width: 100%; margin-top: 14px; padding: 11px;
+    font-size: 14px; font-weight: 500; font-family: 'Space Grotesk', sans-serif;
+    background: var(--blue); color: #fff;
+    border: none; border-radius: 10px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .predict-btn:hover { opacity: 0.88; }
+  .predict-btn:active { transform: scale(0.98); }
+  .predict-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── results ── */
+  .placeholder {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; height: 340px; color: var(--text3);
+    font-size: 13px; gap: 10px; text-align: center;
+  }
+  .placeholder-icon { font-size: 40px; opacity: 0.4; }
+
+  .risk-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 14px; border-radius: 100px; font-size: 13px; font-weight: 500;
+    margin-bottom: 12px;
+  }
+  .badge-at-risk     { background: rgba(239,68,68,0.15);   color: #FCA5A5; border: 0.5px solid rgba(239,68,68,0.3); }
+  .badge-borderline  { background: rgba(245,158,11,0.15);  color: #FCD34D; border: 0.5px solid rgba(245,158,11,0.3); }
+  .badge-progressing { background: rgba(132,204,22,0.15);  color: #BEF264; border: 0.5px solid rgba(132,204,22,0.3); }
+  .badge-on-track    { background: rgba(34,197,94,0.15);   color: #86EFAC; border: 0.5px solid rgba(34,197,94,0.3); }
+
+  /* gauge */
+  .gauge-wrap { display: flex; flex-direction: column; align-items: center; margin: 4px 0 16px; }
+  #gaugeCanvas { display: block; }
+  .gauge-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+  /* metric row */
+  .metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .metric {
+    background: rgba(255,255,255,0.04); border: 0.5px solid var(--border);
+    border-radius: 10px; padding: 12px; text-align: center;
+  }
+  .metric-val { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600; }
+  .metric-lbl { font-size: 11px; color: var(--text2); margin-top: 3px; }
+
+  /* factor bars */
+  .factors-title { font-size: 11px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .bar-name { font-size: 11px; color: var(--text2); width: 76px; flex-shrink: 0; text-align: right; }
+  .bar-track { flex: 1; height: 5px; background: rgba(255,255,255,0.07); border-radius: 99px; overflow: hidden; }
+  .bar-fill  { height: 100%; border-radius: 99px; transition: width 0.7s cubic-bezier(0.4,0,0.2,1); }
+  .bar-score { font-size: 11px; color: var(--text2); width: 28px; flex-shrink: 0; }
+
+  /* tip */
+  .tip {
+    font-size: 12px; color: var(--text2);
+    padding: 10px 14px; background: rgba(59,130,246,0.08);
+    border-radius: 10px; margin-top: 12px;
+    border-left: 2px solid rgba(59,130,246,0.4);
+    line-height: 1.5;
+  }
+
+  /* error */
+  .error-box {
+    background: rgba(239,68,68,0.08); border: 0.5px solid rgba(239,68,68,0.3);
+    border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #FCA5A5;
+    margin-top: 12px; display: none;
+  }
+
+  @media (max-width: 768px) {
+    .body-grid { grid-template-columns: 1fr; }
+    .pipeline  { grid-template-columns: 1fr; }
+    .p-arrow   { display: none; }
+    header { padding: 14px 16px; }
+    main   { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🧠</div>
+    <div>
+      <div class="logo-name">GradeMinds</div>
+      <div class="logo-sub">Student Performance Prediction System</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-pill training" id="statusPill">
+      <div class="status-dot"></div>
+      <span id="statusText">Connecting…</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- pipeline banner -->
+  <div class="pipeline">
+    <div class="p-step">
+      <div class="p-num">01 · PREPROCESSING</div>
+      <div class="p-title">Data Pipeline</div>
+      <div class="p-desc">LabelEncode · MinMaxScale · 85/15 split</div>
+    </div>
+    <div class="p-arrow">→</div>
+    <div class="p-step active">
+      <div class="p-num">02 · MLP REGRESSOR</div>
+      <div class="p-title">Neural Network</div>
+      <div class="p-desc">GridSearchCV · 5-fold CV · Predict G3</div>
+    </div>
+    <div class="p-arrow">→</div>
+    <div class="p-step">
+      <div class="p-num">03 · FUZZY INFERENCE</div>
+      <div class="p-title">Risk Classification</div>
+      <div class="p-desc">Mamdani FIS · 4 risk categories</div>
+    </div>
+  </div>
+
+  <div class="body-grid">
+
+    <!-- LEFT: student form -->
+    <div class="card">
+      <div class="card-title">Student profile</div>
+
+      <div class="row">
+        <div class="field">
+          <label for="f-age">Age</label>
+          <input type="number" id="f-age" min="15" max="22" value="17">
+        </div>
+        <div class="field">
+          <label for="f-sex">Sex</label>
+          <select id="f-sex">
+            <option value="F">Female</option>
+            <option value="M">Male</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="f-medu">Mother's education</label>
+          <select id="f-medu">
+            <option value="0">None</option>
+            <option value="1">Primary (4th grade)</option>
+            <option value="2">5th–9th grade</option>
+            <option value="3" selected>Secondary</option>
+            <option value="4">Higher education</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-fedu">Father's education</label>
+          <select id="f-fedu">
+            <option value="0">None</option>
+            <option value="1">Primary (4th grade)</option>
+            <option value="2">5th–9th grade</option>
+            <option value="3">Secondary</option>
+            <option value="4" selected>Higher education</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="f-studytime">Weekly study time</label>
+          <select id="f-studytime">
+            <option value="1">&lt;2 hours</option>
+            <option value="2" selected>2–5 hours</option>
+            <option value="3">5–10 hours</option>
+            <option value="4">&gt;10 hours</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-failures">Past class failures</label>
+          <select id="f-failures">
+            <option value="0" selected>0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3+</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="f-g1">G1 — Period 1 grade (0–20)</label>
+          <input type="number" id="f-g1" min="0" max="20" value="11">
+        </div>
+        <div class="field">
+          <label for="f-g2">G2 — Period 2 grade (0–20)</label>
+          <input type="number" id="f-g2" min="0" max="20" value="12">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="f-absences">School absences</label>
+          <input type="number" id="f-absences" min="0" max="93" value="4">
+        </div>
+        <div class="field">
+          <label for="f-internet">Internet at home</label>
+          <select id="f-internet">
+            <option value="yes" selected>Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="f-higher">Wants higher education</label>
+          <select id="f-higher">
+            <option value="yes" selected>Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-famsup">Family educational support</label>
+          <select id="f-famsup">
+            <option value="yes" selected>Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="predict-btn" id="predictBtn" onclick="runPrediction()" disabled>
+        <span id="btnIcon">⏳</span>
+        <span id="btnText">Waiting for model…</span>
+      </button>
+
+      <div class="error-box" id="errorBox"></div>
+    </div>
+
+    <!-- RIGHT: results -->
+    <div class="card" id="resultsCard">
+      <div class="card-title">Prediction results</div>
+
+      <div class="placeholder" id="placeholder">
+        <div class="placeholder-icon">📊</div>
+        <div>Fill in the student profile<br>and click <strong>Run prediction</strong></div>
+      </div>
+
+      <div id="resultsContent" style="display:none;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <span class="risk-badge" id="riskBadge"></span>
+          <span style="font-size:12px; color:var(--text3);">G3 graded 0–20</span>
+        </div>
+
+        <div class="gauge-wrap">
+          <canvas id="gaugeCanvas" width="260" height="145"></canvas>
+          <div class="gauge-sub" id="gaugeLabel"></div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-val" id="mPred">—</div>
+            <div class="metric-lbl">Predicted G3</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val" id="mRisk">—</div>
+            <div class="metric-lbl">Risk score</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val" id="mPct">—</div>
+            <div class="metric-lbl">Score percentile</div>
+          </div>
+        </div>
+
+        <div class="factors-title">Key factor influence</div>
+        <div id="factorBars"></div>
+
+        <div class="tip" id="tipBox"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const API = 'http://localhost:5000';
+let modelReady = false;
+
+async function pollStatus() {
+  try {
+    const r = await fetch(`${API}/status`);
+    const d = await r.json();
+    const pill = document.getElementById('statusPill');
+    const txt  = document.getElementById('statusText');
+    const btn  = document.getElementById('predictBtn');
+    const icon = document.getElementById('btnIcon');
+    const btxt = document.getElementById('btnText');
+
+    pill.className = 'status-pill ' + d.status;
+
+    if (d.status === 'training') {
+      txt.textContent = 'Training model…';
+      setTimeout(pollStatus, 3000);
+    } else if (d.status === 'ready') {
+      txt.textContent = 'Model ready';
+      modelReady = true;
+      btn.disabled = false;
+      icon.textContent = '▶';
+      btxt.textContent = 'Run prediction';
+    } else if (d.status === 'error') {
+      txt.textContent = 'Model error';
+      btxt.textContent = 'Model failed — check server';
+    } else {
+      setTimeout(pollStatus, 2000);
+    }
+  } catch {
+    document.getElementById('statusText').textContent = 'Server offline';
+    document.getElementById('statusPill').className = 'status-pill error';
+    setTimeout(pollStatus, 5000);
+  }
+}
+pollStatus();
+
+function drawGauge(risk) {
+  const canvas = document.getElementById('gaugeCanvas');
+  const ctx = canvas.getContext('2d');
+  const cx = 130, cy = 130, r = 100;
+  ctx.clearRect(0, 0, 260, 145);
+
+  const segs = [
+    { s: Math.PI,        e: Math.PI * 1.25, color: '#EF4444' },
+    { s: Math.PI * 1.25, e: Math.PI * 1.5,  color: '#F59E0B' },
+    { s: Math.PI * 1.5,  e: Math.PI * 1.75, color: '#84CC16' },
+    { s: Math.PI * 1.75, e: Math.PI * 2,    color: '#22C55E' },
+  ];
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 18;
+  ctx.lineCap = 'butt';
+  ctx.stroke();
+
+  segs.forEach(seg => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, seg.s, seg.e);
+    ctx.strokeStyle = seg.color;
+    ctx.lineWidth = 18;
+    ctx.lineCap = 'butt';
+    ctx.stroke();
+  });
+
+  [Math.PI * 1.25, Math.PI * 1.5, Math.PI * 1.75].forEach(pos => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, pos - 0.005, pos + 0.005);
+    ctx.strokeStyle = 'rgba(15,22,41,0.9)';
+    ctx.lineWidth = 20;
+    ctx.stroke();
+  });
+
+  const angle = Math.PI + (risk / 100) * Math.PI;
+  const nl = r - 12;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + nl * Math.cos(angle), cy + nl * Math.sin(angle));
+  ctx.strokeStyle = '#E8EDF5';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#E8EDF5';
+  ctx.fill();
+
+  ctx.font = '10px Inter, sans-serif';
+  ctx.fillStyle = '#EF4444'; ctx.textAlign = 'left';
+  ctx.fillText('At-Risk', 16, cy + 20);
+  ctx.fillStyle = '#22C55E'; ctx.textAlign = 'right';
+  ctx.fillText('On-Track', 244, cy + 20);
+}
+
+async function runPrediction() {
+  const errBox = document.getElementById('errorBox');
+  errBox.style.display = 'none';
+
+  if (!modelReady) {
+    errBox.textContent = 'Model is not ready yet.';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  const payload = {
+    sex:       document.getElementById('f-sex').value,
+    age:       +document.getElementById('f-age').value,
+    Medu:      +document.getElementById('f-medu').value,
+    Fedu:      +document.getElementById('f-fedu').value,
+    studytime: +document.getElementById('f-studytime').value,
+    failures:  +document.getElementById('f-failures').value,
+    internet:  document.getElementById('f-internet').value,
+    higher:    document.getElementById('f-higher').value,
+    famsup:    document.getElementById('f-famsup').value,
+    absences:  +document.getElementById('f-absences').value,
+    G1:        +document.getElementById('f-g1').value,
+    G2:        +document.getElementById('f-g2').value,
+  };
+
+  const btn = document.getElementById('predictBtn');
+  btn.disabled = true;
+  document.getElementById('btnText').textContent = 'Running…';
+  document.getElementById('btnIcon').textContent = '⏳';
+
+  try {
+    const res = await fetch(`${API}/predict`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      errBox.textContent = `Error: ${data.error}`;
+      errBox.style.display = 'block';
+      return;
+    }
+
+    showResults(data, payload);
+  } catch (err) {
+    errBox.textContent = `Could not reach server (${err.message}). Make sure app.py is running on port 5000.`;
+    errBox.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    document.getElementById('btnText').textContent = 'Run prediction';
+    document.getElementById('btnIcon').textContent = '▶';
+  }
+}
+
+function showResults(data, payload) {
+  document.getElementById('placeholder').style.display = 'none';
+  document.getElementById('resultsContent').style.display = 'block';
+
+  const badge = document.getElementById('riskBadge');
+  const clsMap = {
+    'At-Risk': 'badge-at-risk', 'Borderline': 'badge-borderline',
+    'Progressing': 'badge-progressing', 'On-Track': 'badge-on-track'
+  };
+  badge.className = 'risk-badge ' + (clsMap[data.risk_category] || '');
+  badge.textContent = data.risk_category;
+
+  drawGauge(data.risk_score);
+  document.getElementById('gaugeLabel').textContent = `Risk score: ${data.risk_score.toFixed(0)} / 100`;
+  document.getElementById('mPred').textContent = data.predicted_g3.toFixed(1);
+  document.getElementById('mRisk').textContent = data.risk_score.toFixed(0) + '%';
+  document.getElementById('mPct').textContent  = data.percentile_est.toFixed(0) + '%';
+
+  const factors = [
+    { name: 'G2 grade',    score: Math.min(100, (payload.G2 / 20) * 100),                     color: '#3B82F6' },
+    { name: 'G1 grade',    score: Math.min(100, (payload.G1 / 20) * 100),                     color: '#8B5CF6' },
+    { name: 'Study time',  score: (payload.studytime / 4) * 100,                              color: '#22C55E' },
+    { name: 'No failures', score: Math.max(0, 100 - payload.failures * 33),                   color: '#F59E0B' },
+    { name: 'Attendance',  score: Math.max(0, 100 - (Math.min(payload.absences, 20) / 20) * 100), color: '#EC4899' },
+  ];
+
+  document.getElementById('factorBars').innerHTML = factors.map(f => `
+    <div class="bar-row">
+      <div class="bar-name">${f.name}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${f.score.toFixed(0)}%; background:${f.color};"></div>
+      </div>
+      <div class="bar-score">${f.score.toFixed(0)}%</div>
+    </div>`).join('');
+
+  document.getElementById('tipBox').textContent = data.intervention;
+}
+</script>
+
+</body>
+</html>
